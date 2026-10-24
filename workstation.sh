@@ -2,6 +2,8 @@
 set -euo pipefail
 
 # ====== CONFIG ======
+# INSTALL_GUI=1 instala "Server with GUI" en servera/serverb (pesado, por defecto NO)
+# REBOOT=1 reinicia servera/serverb al terminar (por defecto NO)
 unset REPO_URL
 REPO_URL="https://github.com/codexchangee/rhcsa-test-paper3.git"
 
@@ -47,24 +49,34 @@ need_pkg firewalld || true
 echo "[2/7] (Optional) Ensure firewalld is running..."
 safe_systemctl_enable_now firewalld || true
 
-echo "[3/7] Cloning repo: $REPO_URL (branch: $BRANCH)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
-if git ls-remote "$REPO_URL" &>/dev/null; then
-  git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$WORKDIR/repo"
+
+# Si el repo local (con html/, servera.sh y serverb.sh) esta presente, se usa ESE.
+# Asi se ejecutan tus scripts corregidos y no los del repo original de GitHub.
+if [ -d "$SCRIPT_DIR/html" ] && [ -f "$SCRIPT_DIR/servera.sh" ] && [ -f "$SCRIPT_DIR/serverb.sh" ]; then
+  echo "[3/7] Usando archivos locales de $SCRIPT_DIR (sin clonar)"
+  SRC="$SCRIPT_DIR"
 else
-  echo "ERROR: Repo is private or unreachable: $REPO_URL"
-  exit 1
+  echo "[3/7] Cloning repo: $REPO_URL (branch: $BRANCH)"
+  if git ls-remote "$REPO_URL" &>/dev/null; then
+    git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$WORKDIR/repo"
+  else
+    echo "ERROR: Repo is private or unreachable: $REPO_URL"
+    exit 1
+  fi
+  SRC="$WORKDIR/repo"
 fi
 
 echo "[4/7] Deploying HTML to $HTML_DIR..."
 mkdir -p "$HTML_DIR"
 # Copy html/ folder contents if present; otherwise copy *.html from repo root
-if [ -d "$WORKDIR/repo/html" ]; then
-  find "$WORKDIR/repo/html" -type f -name "*.html" -exec cp -f {} "$HTML_DIR"/ \;
+if [ -d "$SRC/html" ]; then
+  find "$SRC/html" -type f -name "*.html" -exec cp -f {} "$HTML_DIR"/ \;
 else
   echo "No html/ directory found; checking for root-level *.html files..."
-  find "$WORKDIR/repo" -maxdepth 1 -type f -name "*.html" -exec cp -f {} "$HTML_DIR"/ \; || true
+  find "$SRC" -maxdepth 1 -type f -name "*.html" -exec cp -f {} "$HTML_DIR"/ \; || true
 fi
 
 # Ensure index.html exists
@@ -118,14 +130,14 @@ systemctl restart rpcbind || true
 echo "[7/7] Running server scripts on servera and serverb over SSH..."
 
 # Ensure scripts exist in repo
-if [ ! -f "$WORKDIR/repo/servera.sh" ] || [ ! -f "$WORKDIR/repo/serverb.sh" ]; then
+if [ ! -f "$SRC/servera.sh" ] || [ ! -f "$SRC/serverb.sh" ]; then
   echo "ERROR: servera.sh and/or serverb.sh not found in the repo root."
   echo "Place them at: rhcsa-papers/servera.sh and rhcsa-papers/serverb.sh"
   exit 1
 fi
 
 # Make sure they are executable locally (optional)
-chmod +x "$WORKDIR/repo/servera.sh" "$WORKDIR/repo/serverb.sh" || true
+chmod +x "$SRC/servera.sh" "$SRC/serverb.sh" || true
 
 run_remote() {
   local host="$1"
@@ -133,12 +145,12 @@ run_remote() {
   echo "==> Executing $(basename "$script_path") on $host..."
   # Copy and run atomically so host keeps a copy
   scp -q -o StrictHostKeyChecking=no "$script_path" "${SERVER_SSH_USER}@${host}:/root/remote_run.sh"
-  ssh -o StrictHostKeyChecking=no "${SERVER_SSH_USER}@${host}" "chmod +x /root/remote_run.sh && /root/remote_run.sh"
+  ssh -o StrictHostKeyChecking=no "${SERVER_SSH_USER}@${host}" "chmod +x /root/remote_run.sh && INSTALL_GUI=${INSTALL_GUI:-0} REBOOT=${REBOOT:-0} /root/remote_run.sh"
 }
 
 # Execute
-run_remote "$SERVERA_HOST" "$WORKDIR/repo/servera.sh"
-run_remote "$SERVERB_HOST" "$WORKDIR/repo/serverb.sh"
+run_remote "$SERVERA_HOST" "$SRC/servera.sh"
+run_remote "$SERVERB_HOST" "$SRC/serverb.sh"
 
 
 echo "All done"

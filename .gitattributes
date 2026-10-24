@@ -1,0 +1,4 @@
+# Evita que Git en Windows convierta los scripts a CRLF (rompe bash y Vagrant)
+*.sh        text eol=lf
+Vagrantfile text eol=lf
+*.md        text eol=lf

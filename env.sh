@@ -1,62 +1,31 @@
 #!/bin/bash
+#
+# env.sh - Arma el escenario del examen. Ejecutar EN LA WORKSTATION.
+#
+#   cd /root/rhcsa-test-paper3 && ./env.sh
+#
+# Version para el laboratorio Vagrant: usa los scripts LOCALES (workstation.sh,
+# servera.sh, serverb.sh) en vez de descargar los originales de GitHub, que
+# estan pensados para otro entorno (discos /dev/vdb, reinicios automaticos...).
+#
+# Opciones (variables de entorno):
+#   INSTALL_GUI=1  instala "Server with GUI" en servera/serverb (pesado)
+#   REBOOT=1       reinicia servera/serverb al terminar
 set -u
 
-bash <<'WRAP'
-#####################################
-# CONFIG
-#####################################
-WORK_URL="https://raw.githubusercontent.com/codexchangee/rhcsa-test-paper3/refs/heads/main/workstation.sh"
-SERVERA_URL="https://raw.githubusercontent.com/codexchangee/rhcsa-test-paper3/refs/heads/main/servera.sh"
-SERVERB_URL="https://raw.githubusercontent.com/codexchangee/rhcsa-test-paper3/refs/heads/main/serverb.sh"
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
-HOST_A="servera"
-HOST_B="serverb"
+[[ $EUID -eq 0 ]] || exec sudo -E bash "$0" "$@"
 
-TMPDIR="$(mktemp -d /tmp/runall.XXXX)"
-trap 'echo "Cleaning $TMPDIR"; rm -rf "$TMPDIR"' EXIT
+[[ -f "$DIR/workstation.sh" ]] || { echo "No encuentro $DIR/workstation.sh"; exit 1; }
 
-#####################################
-echo "[run-all] Downloading workstation script..."
-#####################################
-curl -fsSL "$WORK_URL" -o "$TMPDIR/work.orig" \
-  || { echo "Failed to download workstation script"; exit 1; }
+# workstation.sh ya se encarga de lanzar servera.sh y serverb.sh por SSH (paso 7/7)
+bash "$DIR/workstation.sh"
+rc=$?
 
-#####################################
-echo "[run-all] Neutralizing reboot and self-delete..."
-#####################################
-sed -e 's/^[[:space:]]*reboot/# reboot disabled/' \
-    -e 's/^[[:space:]]*shutdown -r.*/# shutdown disabled/' \
-    "$TMPDIR/work.orig" > "$TMPDIR/work.safe"
-
-chmod +x "$TMPDIR/work.safe"
-
-#####################################
-echo "[run-all] Running workstation script (safe)..."
-#####################################
-sudo bash "$TMPDIR/work.safe" \
-  2>&1 | tee "$TMPDIR/workstation.log" \
-  || echo "[run-all] workstation finished with non-zero status"
-
-#####################################
-echo "[run-all] Running servera script on $HOST_A..."
-#####################################
-ssh -o StrictHostKeyChecking=no root@"$HOST_A" \
-  'bash -s' < <(curl -fsSL "$SERVERA_URL") \
-  2>&1 | tee "$TMPDIR/servera.log" \
-  || echo "[run-all] servera finished with errors"
-
-
-#####################################
-echo "[run-all] Running serverb script on $HOST_B..."
-#####################################
-ssh -o StrictHostKeyChecking=no root@"$HOST_B" \
-  'bash -s' < <(curl -fsSL "$SERVERB_URL") \
-  2>&1 | tee "$TMPDIR/serverb.log" \
-  || echo "[run-all] serverb finished with errors"
-
-#####################################
-echo "[run-all] ALL TASKS TRIGGERED"
-#####################################
-WRAP
-
-exit 0
+if (( rc == 0 )); then
+  echo "[env] Escenario listo. Siguiente: exam-timer start 180"
+else
+  echo "[env] workstation.sh termino con error ($rc). Revisa la salida de arriba."
+fi
+exit $rc
