@@ -8,7 +8,7 @@ NODE1="172.25.250.10"
 NODE2="172.25.250.11"
 ROOT_PASS="radiowits"
 PASS_THRESHOLD=70
-TOTAL=20
+TOTAL=21
 PASSED=0
 SUMMARY=()
 
@@ -265,6 +265,19 @@ if run_remote $NODE2 "df -m /home | awk 'NR==2 {print \$2}' | awk '{exit !(\$1>=
 else
   check_fail "Q21 /home resize incorrect"
   add_summary Q21 Resize FAIL
+fi
+
+# Q22 – Flatpak on node2
+if run_remote $NODE2 "
+  flatpak --version >/dev/null 2>&1 &&
+  flatpak remotes --user | grep -q flathrain &&
+  flatpak list --user | grep -q 'org.freedesktop.Platform.GlxInfo'
+"; then
+  check_ok "Q22 Flatpak configured"
+  add_summary Q22 Flatpak PASS
+else
+  check_fail "Q22 Flatpak missing"
+  add_summary Q22 Flatpak FAIL
 fi
 
 echo -e "\n${bold}${blue}Summary${reset}"
