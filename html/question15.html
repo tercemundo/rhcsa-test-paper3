@@ -1,21 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Red Hat Test Exam</title>
+  <title>Examen Práctico Red Hat</title>
 <script>
 (function () {
-  const DURATION_SECONDS = 90 * 60; // 1h 30m = 5400 sec
-  const STORAGE_KEY = "examEndTime_90m_v2"; // new key so old value won't interfere
+  const DURATION_SECONDS = 90 * 60;
+  const STORAGE_KEY = "examEndTime_90m_v2";
 
   function startTimer(durationSeconds, display) {
     let endTime = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
     const now = Date.now();
 
-    // Reset endTime if:
-    // 1) nothing stored
-    // 2) already expired
-    // 3) leftover from older longer timer
     if (
       !endTime ||
       endTime <= now ||
@@ -35,7 +31,6 @@
       display.textContent =
         hours + ":" + (minutes < 10 ? "0" : "") + minutes;
 
-      // Last 15 minutes in red
       if (remaining <= 15 * 60) {
         display.classList.add("red");
       } else {
@@ -66,12 +61,12 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background-color: #ffffcc; /* closer match to screenshot */
+      background-color: #ffffcc;
       display: flex;
     }
     .sidebar {
       width: 220px;
-      background-color: #ffffcc; /* match background */
+      background-color: #ffffcc;
       border-right: 2px solid #ccc;
       text-align: center;
       padding: 20px;
@@ -98,7 +93,6 @@
       color: blue;
       text-decoration: underline;
     }
-    /* Main content */
     .content {
       flex: 1;
       padding: 20px;
@@ -133,27 +127,26 @@
 <body>
   <!-- Sidebar -->
   <div class="sidebar">
-    <div class="exam-title">Red Hat<br />Test Exam</div>
-    <div class="timer">Time remaining: <span id="countdown">1:30</span></div>
-    <a href="#" class="lang-link">Select Language</a>
-    <p>Task 15 of 21</p>
+    <div class="exam-title">Examen Práctico<br />Red Hat</div>
+    <div class="timer">Tiempo restante: <span id="countdown">1:30</span></div>
+    <a href="#" class="lang-link">Seleccionar Idioma</a>
+    <p>Tarea 15 de 21</p>
   </div>
   <div class="content">
 	<div>
-    <h2>Configure the following: </h2>
-    <p><label><input type="radio"> Create a container on node1 as siya </label></br></br>
-    <label><input type="radio"> Downlaod the image watcher from the registry server link <a href="registry.redhat.io"> registry.redhat.io </a> download the image from <a href="docker.io/codesxchange/watcher"> docker.io/codesxchange/watcher </a> </label></br></br>
- 	<label><input type="radio"> Create a container using siya user the container name should be the watcher </label></br></br> 
- 	<label><input type="radio"> Container should run as a systemd service, so configure as a service name containerwatcher.service </label></br></br>  
- 	<label><input type="radio"> Container should run at boot time </label></br></br>
-	<label><input type="radio"> Mount /opt/files directory to /data/input in the container and /opt/processes to /data/output in the container. </label></br></br>
-	<label><input type="radio"> This container will convert ascii test file into pdf format, so when you create simple file in /opt/files then container will automatically convert that file into pdf and save /opt/processed</label></br></br></p>
+    <h2>Configurar lo siguiente:</h2>
+    <p><label><input type="radio"> Crear un contenedor en node1 como siya </label></br></br>
+    <label><input type="radio"> Descargar la imagen watcher desde el servidor de registro <a href="registry.redhat.io"> registry.redhat.io </a> descargar la imagen desde <a href="docker.io/codesxchange/watcher"> docker.io/codesxchange/watcher </a> </label></br></br>
+  	<label><input type="radio"> Crear un contenedor usando el usuario siya, el nombre del contenedor debe ser watcher </label></br></br> 
+  	<label><input type="radio"> El contenedor debe ejecutarse como un servicio systemd, configúrelo como un servicio llamado containerwatcher.service </label></br></br>  
+  	<label><input type="radio"> El contenedor debe ejecutarse al momento del arranque </label></br></br>
+  	<label><input type="radio"> Montar el directorio /opt/files en /data/input dentro del contenedor y /opt/processes en /data/output dentro del contenedor. </label></br></br>
+  	<label><input type="radio"> Este contenedor convertirá un archivo de prueba ascii a formato pdf, por lo que cuando cree un archivo simple en /opt/files, el contenedor convertirá automáticamente ese archivo a pdf y lo guardará en /opt/processed</label></br></br></p>
 	
-
-<center><button onclick="history.back()">Back</button></center>
+<center><button onclick="history.back()">Atrás</button></center>
     <hr><center>
     
-    <button>Provide feedback on this item</button></center>
+    <button>Enviar comentarios sobre este ítem</button></center>
   </div>
 </div>
 </body>

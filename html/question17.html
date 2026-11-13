@@ -1,21 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Red Hat Test Exam</title>
+  <title>Examen Práctico Red Hat</title>
 <script>
 (function () {
-  const DURATION_SECONDS = 90 * 60; // 1h 30m = 5400 sec
-  const STORAGE_KEY = "examEndTime_90m_v2"; // new key so old value won't interfere
+  const DURATION_SECONDS = 90 * 60;
+  const STORAGE_KEY = "examEndTime_90m_v2";
 
   function startTimer(durationSeconds, display) {
     let endTime = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
     const now = Date.now();
 
-    // Reset endTime if:
-    // 1) nothing stored
-    // 2) already expired
-    // 3) leftover from older longer timer
     if (
       !endTime ||
       endTime <= now ||
@@ -35,7 +31,6 @@
       display.textContent =
         hours + ":" + (minutes < 10 ? "0" : "") + minutes;
 
-      // Last 15 minutes in red
       if (remaining <= 15 * 60) {
         display.classList.add("red");
       } else {
@@ -66,12 +61,12 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background-color: #ffffcc; /* closer match to screenshot */
+      background-color: #ffffcc;
       display: flex;
     }
     .sidebar {
       width: 220px;
-      background-color: #ffffcc; /* match background */
+      background-color: #ffffcc;
       border-right: 2px solid #ccc;
       text-align: center;
       padding: 20px;
@@ -98,7 +93,6 @@
       color: blue;
       text-decoration: underline;
     }
-    /* Main content */
     .content {
       flex: 1;
       padding: 20px;
@@ -133,22 +127,22 @@
 <body>
   <!-- Sidebar -->
   <div class="sidebar">
-    <div class="exam-title">Red Hat<br />Test Exam</div>
-    <div class="timer">Time remaining: <span id="countdown">1:30</span></div>
-    <a href="#" class="lang-link">Select Language</a>
-    <p>Task 17 of 21</p>
+    <div class="exam-title">Examen Práctico<br />Red Hat</div>
+    <div class="timer">Tiempo restante: <span id="countdown">1:30</span></div>
+    <a href="#" class="lang-link">Seleccionar Idioma</a>
+    <p>Tarea 17 de 21</p>
   </div>
   <div class="content">
-    <h2>Configure your system to use default repositories</h2>
-    <p>YUM repositories have been made available from 
-    <a href="http://content.example.com/rhel9.3/x86_64/dvd/BaseOS">http://content.example.com/rhel9.3/x86_64/dvd/BaseOS</a> and 
+    <h2>Configurar el sistema para usar los repositorios predeterminados</h2>
+    <p>Los repositorios YUM están disponibles desde 
+    <a href="http://content.example.com/rhel9.3/x86_64/dvd/BaseOS">http://content.example.com/rhel9.3/x86_64/dvd/BaseOS</a> y 
     <a href="http://content.example.com/rhel9.3/x86_64/dvd/AppStream">http://content.example.com/rhel9.3/x86_64/dvd/AppStream</a></p>
-    <p>Configure your systems to use these locations as default repositories.</p>
+    <p>Configure sus sistemas para usar estas ubicaciones como repositorios predeterminados.</p>
 
-<center><button onclick="history.back()">Back</button></center>
+<center><button onclick="history.back()">Atrás</button></center>
     <hr><center>
     
-    <button>Provide feedback on this item</button></center>
+    <button>Enviar comentarios sobre este ítem</button></center>
   </div>
 </body>
 </html>

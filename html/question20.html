@@ -1,21 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Red Hat Test Exam</title>
+  <title>Examen Práctico Red Hat</title>
 <script>
 (function () {
-  const DURATION_SECONDS = 90 * 60; // 1h 30m = 5400 sec
-  const STORAGE_KEY = "examEndTime_90m_v2"; // new key so old value won't interfere
+  const DURATION_SECONDS = 90 * 60;
+  const STORAGE_KEY = "examEndTime_90m_v2";
 
   function startTimer(durationSeconds, display) {
     let endTime = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
     const now = Date.now();
 
-    // Reset endTime if:
-    // 1) nothing stored
-    // 2) already expired
-    // 3) leftover from older longer timer
     if (
       !endTime ||
       endTime <= now ||
@@ -35,7 +31,6 @@
       display.textContent =
         hours + ":" + (minutes < 10 ? "0" : "") + minutes;
 
-      // Last 15 minutes in red
       if (remaining <= 15 * 60) {
         display.classList.add("red");
       } else {
@@ -66,12 +61,12 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background-color: #ffffcc; /* closer match to screenshot */
+      background-color: #ffffcc;
       display: flex;
     }
     .sidebar {
       width: 220px;
-      background-color: #ffffcc; /* match background */
+      background-color: #ffffcc;
       border-right: 2px solid #ccc;
       text-align: center;
       padding: 20px;
@@ -98,7 +93,6 @@
       color: blue;
       text-decoration: underline;
     }
-    /* Main content */
     .content {
       flex: 1;
       padding: 20px;
@@ -133,21 +127,21 @@
 <body>
   <!-- Sidebar -->
   <div class="sidebar">
-    <div class="exam-title">Red Hat<br />Test Exam</div>
-    <div class="timer">Time remaining: <span id="countdown">1:30</span></div>
-    <a href="#" class="lang-link">Select Language</a>
-    <p>Task 20 of 21</p>
+    <div class="exam-title">Examen Práctico<br />Red Hat</div>
+    <div class="timer">Tiempo restante: <span id="countdown">1:30</span></div>
+    <a href="#" class="lang-link">Seleccionar Idioma</a>
+    <p>Tarea 20 de 21</p>
   </div>
   <div class="content">
-    <h2>Configure Volumes</h2>
-    <p><label><input type="radio">Create one logical volume engineering from a database volume group of size 20 Extents.</label></br></br> 
- 	<label><input type="radio">Create the logical volume engineering from the database volume group extent should be 8MiB. </label></br></br> 
- 	<label><input type="radio">Format with ext3 file system and mount it permanently under /mnt/database. </label></br></br>  
- 	    </p>
-	<center><button onclick="history.back()">Back</button></center>
+    <h2>Configurar volúmenes</h2>
+    <p><label><input type="radio">Crear un volumen lógico engineering desde un grupo de volúmenes database de tamaño 20 extents.</label></br></br> 
+  	<label><input type="radio">Crear el volumen lógico engineering desde el grupo de volúmenes database, el extent debe ser de 8 MiB. </label></br></br> 
+  	<label><input type="radio">Formatear con sistema de archivos ext3 y montarlo permanentemente bajo /mnt/database. </label></br></br>  
+  	    </p>
+	<center><button onclick="history.back()">Atrás</button></center>
     <hr><center>
     
-    <button>Provide feedback on this item</button></center>
+    <button>Enviar comentarios sobre este ítem</button></center>
   </div>
 </body>
 </html>

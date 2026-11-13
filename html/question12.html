@@ -1,21 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Red Hat Test Exam</title>
+  <title>Examen Práctico Red Hat</title>
 <script>
 (function () {
-  const DURATION_SECONDS = 90 * 60; // 1h 30m = 5400 sec
-  const STORAGE_KEY = "examEndTime_90m_v2"; // new key so old value won't interfere
+  const DURATION_SECONDS = 90 * 60;
+  const STORAGE_KEY = "examEndTime_90m_v2";
 
   function startTimer(durationSeconds, display) {
     let endTime = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
     const now = Date.now();
 
-    // Reset endTime if:
-    // 1) nothing stored
-    // 2) already expired
-    // 3) leftover from older longer timer
     if (
       !endTime ||
       endTime <= now ||
@@ -35,7 +31,6 @@
       display.textContent =
         hours + ":" + (minutes < 10 ? "0" : "") + minutes;
 
-      // Last 15 minutes in red
       if (remaining <= 15 * 60) {
         display.classList.add("red");
       } else {
@@ -66,12 +61,12 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background-color: #ffffcc; /* closer match to screenshot */
+      background-color: #ffffcc;
       display: flex;
     }
     .sidebar {
       width: 220px;
-      background-color: #ffffcc; /* match background */
+      background-color: #ffffcc;
       border-right: 2px solid #ccc;
       text-align: center;
       padding: 20px;
@@ -98,7 +93,6 @@
       color: blue;
       text-decoration: underline;
     }
-    /* Main content */
     .content {
       flex: 1;
       padding: 20px;
@@ -133,22 +127,21 @@
 <body>
   <!-- Sidebar -->
   <div class="sidebar">
-    <div class="exam-title">Red Hat<br />Test Exam</div>
-    <div class="timer">Time remaining: <span id="countdown">1:30</span></div>
-    <a href="#" class="lang-link">Select Language</a>
-    <p>Task 12 of 21</p>
+    <div class="exam-title">Examen Práctico<br />Red Hat</div>
+    <div class="timer">Tiempo restante: <span id="countdown">1:30</span></div>
+    <a href="#" class="lang-link">Seleccionar Idioma</a>
+    <p>Tarea 12 de 21</p>
   </div>
   <div class="content">
-    <h2>Configure autofs to automount the home directories of remoteuserx user. Note the Following: </h2>
-    <p><label><input type="radio">remoteuser3 home directory is exported via NFS, which is available on workstation.lab.example.com (172.25.250.9),</br>&nbsp;&nbsp;&nbsp;&nbsp; your NFS-exports directory is /ourhome/remoteuser3 for remoteuser3</label></br></br> 
- 	<label><input type="radio"> remoteuser3’s home directory should be automounted using autofs service. </label></br></br> 
- 	<label><input type="radio"> home directories must be writable by their users.  </label></br></br>  
- 	    </p>
-	<center><button onclick="history.back()">Back</button></center>
+    <h2>Configurar autofs para montar automáticamente los directorios home del usuario remoteuserx. Nota lo siguiente:</h2>
+    <p><label><input type="radio"> El directorio home de remoteuser3 se exporta mediante NFS, que está disponible en workstation.lab.example.com (172.25.250.9), &nbsp;&nbsp;&nbsp;&nbsp; su directorio de exportaciones NFS es /ourhome/remoteuser3 para remoteuser3</label></br></br> 
+  	<label><input type="radio"> El directorio home de remoteuser3 debe montarse automáticamente usando el servicio autofs. </label></br></br> 
+  	<label><input type="radio"> Los directorios home deben ser escribibles por sus usuarios.  </label></br></br>  
+  	    </p>
+	<center><button onclick="history.back()">Atrás</button></center>
     <hr><center>
     
-    <button>Provide feedback on this item</button></center>
+    <button>Enviar comentarios sobre este ítem</button></center>
   </div>
 </body>
 </html>
-

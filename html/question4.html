@@ -1,21 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Red Hat Test Exam</title>
+  <title>Examen Práctico Red Hat</title>
 <script>
 (function () {
-  const DURATION_SECONDS = 90 * 60; // 1h 30m = 5400 sec
-  const STORAGE_KEY = "examEndTime_90m_v2"; // new key so old value won't interfere
+  const DURATION_SECONDS = 90 * 60;
+  const STORAGE_KEY = "examEndTime_90m_v2";
 
   function startTimer(durationSeconds, display) {
     let endTime = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
     const now = Date.now();
 
-    // Reset endTime if:
-    // 1) nothing stored
-    // 2) already expired
-    // 3) leftover from older longer timer
     if (
       !endTime ||
       endTime <= now ||
@@ -35,7 +31,6 @@
       display.textContent =
         hours + ":" + (minutes < 10 ? "0" : "") + minutes;
 
-      // Last 15 minutes in red
       if (remaining <= 15 * 60) {
         display.classList.add("red");
       } else {
@@ -66,12 +61,12 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background-color: #ffffcc; /* closer match to screenshot */
+      background-color: #ffffcc;
       display: flex;
     }
     .sidebar {
       width: 220px;
-      background-color: #ffffcc; /* match background */
+      background-color: #ffffcc;
       border-right: 2px solid #ccc;
       text-align: center;
       padding: 20px;
@@ -98,7 +93,6 @@
       color: blue;
       text-decoration: underline;
     }
-    /* Main content */
     .content {
       flex: 1;
       padding: 20px;
@@ -133,23 +127,23 @@
 <body>
   <!-- Sidebar -->
   <div class="sidebar">
-    <div class="exam-title">Red Hat<br />Test Exam</div>
-    <div class="timer">Time remaining: <span id="countdown">1:30</span></div>
-    <a href="#" class="lang-link">Select Language</a>
-    <p>Task 4 of 21</p>
+    <div class="exam-title">Examen Práctico<br />Red Hat</div>
+    <div class="timer">Tiempo restante: <span id="countdown">1:30</span></div>
+    <a href="#" class="lang-link">Seleccionar Idioma</a>
+    <p>Tarea 4 de 21</p>
   </div>
   <div class="content">
-    <h2>Configure Selinux</h2>
-    <p><label><input type="radio">The http service serve non-standard 82 port for your machine</label></br> 
-	<label><input type="radio">The system is not able to connect to httpd service at port 82, fix the debug issue </label></br> 
-	<label><input type="radio">To store the HTML files under /var/www/html directory don’t have change to it.</label></br> 
-	<label><input type="radio">It should be accessible at port 82 and should start at boot time.</label></br>
-	<label><input type="radio">Verify that the page can be accessed locally using command : <i>curl http://localhost:82/file1</i></label></br></p>
+    <h2>Configurar SELinux</h2>
+    <p><label><input type="radio"> El servicio http sirve en el puerto no estándar 82 para su máquina</label></br> 
+	<label><input type="radio"> El sistema no puede conectarse al servicio httpd en el puerto 82, solucione el problema de depuración </label></br> 
+	<label><input type="radio"> Para almacenar los archivos HTML bajo /var/www/html no tiene cambios en él.</label></br> 
+	<label><input type="radio"> Debe ser accesible en el puerto 82 y debe iniciarse al momento del arranque.</label></br>
+	<label><input type="radio"> Verifique que la página pueda ser accedida localmente usando el comando: <i>curl http://localhost:82/file1</i></label></br></p>
 
-<center><button onclick="history.back()">Back</button></center>
+<center><button onclick="history.back()">Atrás</button></center>
     <hr><center>
     
-    <button>Provide feedback on this item</button></center>
+    <button>Enviar comentarios sobre este ítem</button></center>
   </div>
 </body>
 </html>
