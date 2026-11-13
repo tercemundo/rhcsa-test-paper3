@@ -22,12 +22,22 @@ warn(){ echo "[workstation] ADVERTENCIA: $*" >&2; }
 retry(){ local n=0; until "$@"; do n=$((n+1)); (( n >= 5 )) && return 1; sleep 5; done; }
 
 # ---------------------------------------------------------------------------
-log "Paquetes (EPEL para sshpass)"
+log "Paquetes (EPEL 10 para sshpass)"
 # ---------------------------------------------------------------------------
 retry dnf install -y --setopt=install_weak_deps=False \
-  git openssh-clients procps-ng tmux util-linux
-retry dnf install -y epel-release || warn "No se pudo instalar epel-release"
-dnf install -y sshpass || warn "sshpass no se instalo; check.sh intentara instalarlo por su cuenta"
+  git curl openssh-clients procps-ng tmux util-linux
+
+# AlmaLinux 10 trae epel-release en el repo extras. Si no estuviera, se usa el
+# RPM oficial de EPEL 10 como respaldo.
+if ! retry dnf install -y epel-release; then
+  warn "epel-release no esta disponible; probando el RPM oficial de EPEL 10"
+  retry dnf install -y \
+    https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
+    || warn "No se pudo instalar el repositorio EPEL 10"
+fi
+
+retry dnf install -y sshpass \
+  || warn "sshpass no se instalo; check.sh intentara instalarlo por su cuenta"
 
 # ---------------------------------------------------------------------------
 log "Repositorio en $LAB_DIR"
@@ -42,10 +52,22 @@ fi
 # asi exam-timer.sh y tus modificaciones de check.sh/env.sh tienen prioridad.
 shopt -s nullglob
 for f in /tmp/lab-upload-*; do
+  [[ -d "$f" ]] && continue
   name="${f#/tmp/lab-upload-}"
   install -m 0755 "$f" "$LAB_DIR/$name"
   log "Copiado: $name"
 done
+
+# Archivos web que van dentro de html/ (tema oscuro, CSS/JS propios).
+# Sin esto, workstation.sh desplegaria un clon del repo sin esos archivos.
+if compgen -G "/tmp/lab-upload-html/*" >/dev/null 2>&1; then
+  mkdir -p "$LAB_DIR/html"
+  for f in /tmp/lab-upload-html/*; do
+    [[ -f "$f" ]] || continue
+    install -m 0644 "$f" "$LAB_DIR/html/$(basename "$f")"
+    log "Copiado: html/$(basename "$f")"
+  done
+fi
 
 # Por si el repo se descargo en Windows con finales de linea CRLF
 for f in "$LAB_DIR"/*.sh; do
@@ -60,6 +82,40 @@ done
 # sigue encontrando check.sh a traves del enlace simbolico)
 ln -sf "$LAB_DIR/exam-timer.sh" /usr/local/bin/exam-timer
 ln -sf "$LAB_DIR/check.sh"      /usr/local/bin/rhcsa-check
+
+# ---------------------------------------------------------------------------
+log "httpd y firewalld (examen accesible desde el host en http://172.25.250.9)"
+# ---------------------------------------------------------------------------
+# El examen se publica con httpd en el puerto 80. Si firewalld queda activo en
+# la zona "public" sin el servicio http permitido, el firewall RECHAZA las
+# conexiones y desde el navegador del host se ve "no se puede acceder a este
+# sitio" (el puerto responde "No route to host"). El permiso es permanente,
+# asi que sobrevive reinicios de la VM.
+retry dnf install -y --setopt=install_weak_deps=False httpd || warn "No se pudo instalar httpd"
+systemctl enable --now httpd >/dev/null 2>&1 || warn "No se pudo activar httpd"
+
+# Publica el examen en /var/www/html para que ya se pueda entrar desde el host
+# a http://172.25.250.9 despues de "vagrant up" (env.sh/workstation.sh vuelven
+# a desplegarlo, es idempotente).
+if [[ -d "$LAB_DIR/html" ]]; then
+  mkdir -p /var/www/html
+  cp -a "$LAB_DIR/html/." /var/www/html/
+  chown -R apache:apache /var/www/html 2>/dev/null || true
+  log "Examen publicado en /var/www/html ($(ls /var/www/html | wc -l) archivos)"
+fi
+
+if command -v firewall-cmd >/dev/null 2>&1; then
+  # El permiso permanente se puede dejar aunque el daemon no este corriendo:
+  # asi, si firewalld arranca despues (lo hace workstation.sh durante env.sh),
+  # el puerto 80 ya queda abierto.
+  firewall-cmd --permanent --add-service=http >/dev/null 2>&1 || true
+  if firewall-cmd --state >/dev/null 2>&1; then
+    firewall-cmd --reload >/dev/null 2>&1 || true
+    log "firewalld: servicio http habilitado (puerto 80 abierto)"
+  else
+    log "firewalld: servicio http habilitado de forma permanente (puerto 80)"
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 log "Clave SSH de root y configuracion de cliente"

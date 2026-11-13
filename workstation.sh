@@ -49,6 +49,17 @@ need_pkg firewalld || true
 echo "[2/7] (Optional) Ensure firewalld is running..."
 safe_systemctl_enable_now firewalld || true
 
+# El examen se publica con httpd en el puerto 80 de la workstation. Con
+# firewalld activo en la zona "public" y sin el servicio http permitido, el
+# firewall rechaza las conexiones y desde el navegador del host aparece
+# "no se puede acceder a este sitio" (el puerto responde "No route to host").
+# El permiso es PERMANENTE, asi que sobrevive a un reinicio de la VM.
+if command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then
+  firewall-cmd --permanent --add-service=http >/dev/null 2>&1 || true
+  firewall-cmd --reload >/dev/null 2>&1 || true
+  echo "    firewalld: servicio http habilitado en la zona $(firewall-cmd --get-zone-of-interface=eth1 2>/dev/null || echo public) (puerto 80)"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
@@ -71,9 +82,9 @@ fi
 
 echo "[4/7] Deploying HTML to $HTML_DIR..."
 mkdir -p "$HTML_DIR"
-# Copy html/ folder contents if present; otherwise copy *.html from repo root
+# Copy html/ folder contents if present (HTML, CSS, JS); otherwise copy *.html from repo root
 if [ -d "$SRC/html" ]; then
-  find "$SRC/html" -type f -name "*.html" -exec cp -f {} "$HTML_DIR"/ \;
+  cp -a "$SRC/html/." "$HTML_DIR"/
 else
   echo "No html/ directory found; checking for root-level *.html files..."
   find "$SRC" -maxdepth 1 -type f -name "*.html" -exec cp -f {} "$HTML_DIR"/ \; || true

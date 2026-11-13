@@ -18,8 +18,13 @@ need_root(){ [[ $EUID -eq 0 ]] || { echo "Run as root"; exit 1; }; }
 
 ensure_sshpass(){
   if ! command -v sshpass &>/dev/null; then
-    echo "Installing sshpass..."
-    dnf install -y sshpass >/dev/null 2>&1 || yum install -y sshpass
+    echo "Installing sshpass (EPEL 10 si hace falta)..."
+    dnf install -y epel-release >/dev/null 2>&1 \
+      || dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm >/dev/null 2>&1 \
+      || true
+    dnf install -y sshpass >/dev/null 2>&1 \
+      || yum install -y sshpass \
+      || { echo "ERROR: no se pudo instalar sshpass. Instalalo manualmente (dnf install sshpass)." >&2; exit 1; }
   fi
 }
 

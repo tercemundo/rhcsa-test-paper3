@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # serverb.sh (node2) - Escenario de las tareas Q16-Q21.
-# Version para Vagrant/VirtualBox. Cambios respecto al original:
+# Version para Vagrant/VirtualBox con AlmaLinux 10. Cambios respecto al original:
 #   - Detecta el disco extra libre (/dev/sdb en VirtualBox) en vez de fijar /dev/vdb
 #   - Copia /home al nuevo LV ANTES de montarlo (si no, se oculta /home/vagrant
 #     y vagrant ssh deja de funcionar)
@@ -23,7 +23,10 @@ fi
 echo "root:password" | chpasswd
 
 if [ "$INSTALL_GUI" = "1" ] && ! rpm -qa | grep -q "gnome-session"; then
-    dnf groupinstall "Server with GUI" -y || true
+    # dnf5 (RHEL/AlmaLinux 10) usa "group install"; dnf4 acepta "groupinstall".
+    dnf group install "Server with GUI" -y \
+      || dnf groupinstall "Server with GUI" -y \
+      || true
 fi
 
 # ---------------------------------------------------------------------------

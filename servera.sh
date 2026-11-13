@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # servera.sh (node1) - Escenario de las tareas Q02-Q15.
-# Version para Vagrant/VirtualBox. Cambios respecto al original:
+# Version para Vagrant/VirtualBox con AlmaLinux 10. Cambios respecto al original:
 #   - NO reinicia (REBOOT=1 para reiniciar)
 #   - NO instala "Server with GUI" (INSTALL_GUI=1 para instalarlo)
 #   - NO pasa las interfaces a DHCP (podia dejar eth1 sin la IP 172.25.250.10)
@@ -24,10 +24,10 @@ echo "Setting root password..."
 echo "root:radiowits" | chpasswd
 
 # Quitar bzip2 (parte del escenario)
-yum remove -y bzip2 || true
+dnf remove -y bzip2 || true
 
 echo "Installing httpd..."
-yum install -y httpd
+dnf install -y httpd
 systemctl start httpd
 systemctl enable httpd
 
@@ -63,7 +63,10 @@ done
 
 if [ "$INSTALL_GUI" = "1" ] && ! rpm -qa | grep -q "gnome-session"; then
     echo "Installing Server with GUI..."
-    dnf groupinstall -y "Server with GUI" || true
+    # dnf5 (RHEL/AlmaLinux 10) usa "group install"; dnf4 acepta "groupinstall".
+    dnf group install -y "Server with GUI" \
+      || dnf groupinstall -y "Server with GUI" \
+      || true
 fi
 
 echo "Script completed successfully."

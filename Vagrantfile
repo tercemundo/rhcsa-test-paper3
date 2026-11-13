@@ -2,6 +2,7 @@
 # vi: set ft=ruby :
 #
 # Laboratorio RHCSA (rhcsa-test-paper3) en 3 VMs de VirtualBox
+# Distribucion base: AlmaLinux 10 (box oficial almalinux/10)
 #
 #   workstation  172.25.250.9    corrector + exam-timer.sh      (se levanta al final)
 #   servera      172.25.250.10   "node1" en check.sh
@@ -17,7 +18,11 @@
 #   AUTO_ENV=1 vagrant up      # ademas ejecuta env.sh al final
 #
 # Variables de entorno opcionales:
-#   LAB_BOX=almalinux/9        Otra box (por defecto rockylinux/9)
+#   LAB_BOX=almalinux/10       Box a usar (por defecto almalinux/10)
+#   LAB_BOX_SERVER_URL=https://vagrant.almalinux.org
+#                              Catalogo de boxes (por defecto el oficial de AlmaLinux)
+#   LAB_BOX_VERSION=10.2.20261109
+#                              (Opcional) Fija una version concreta de la box
 #   LAB_ROOT_PASS=radiowits    Password de root (debe coincidir con ROOT_PASS de check.sh)
 #   AUTO_ENV=1                 Ejecuta env.sh automaticamente al terminar el provisionado
 #   SKIP_PREFLIGHT=1           Omite la verificacion de /etc/vbox/networks.conf
@@ -27,10 +32,12 @@ Vagrant.require_version ">= 2.3.4"
 # Los discos extra (config.vm.disk) son una funcion experimental de Vagrant
 ENV["VAGRANT_EXPERIMENTAL"] ||= "disks"
 
-BOX       = ENV.fetch("LAB_BOX", "almalinux/9")
-ROOT_PASS = ENV.fetch("LAB_ROOT_PASS", "radiowits")
-AUTO_ENV  = ENV["AUTO_ENV"] == "1"
-SUBNET    = "172.25.250"
+BOX            = ENV.fetch("LAB_BOX", "almalinux/10")
+BOX_SERVER_URL = ENV.fetch("LAB_BOX_SERVER_URL", "https://vagrant.almalinux.org")
+BOX_VERSION    = ENV["LAB_BOX_VERSION"]
+ROOT_PASS      = ENV.fetch("LAB_ROOT_PASS", "radiowits")
+AUTO_ENV       = ENV["AUTO_ENV"] == "1"
+SUBNET         = "172.25.250"
 
 # Orden importante: la workstation va ultima porque en su provisionado
 # copia su clave SSH a servera y serverb (que ya deben estar encendidos).
@@ -46,7 +53,13 @@ NODES = [
 # El resto del repo (por ejemplo la carpeta html/) se obtiene con git clone.
 UPLOADS = %w[
   exam-timer.sh check.sh env.sh paper-check.sh
-  workstation.sh servera.sh serverb.sh
+  workstation.sh servera.sh serverb.sh verificar-escenario.sh
+].freeze
+
+# Archivos web que viven dentro de html/ y no siempre estan en el clon del
+# repo (por ejemplo el tema oscuro, que todavia no esta commiteado).
+UPLOADS_HTML = %w[
+  html/theme.css html/theme.js
 ].freeze
 
 # ---------------------------------------------------------------------------
@@ -76,11 +89,16 @@ end
 
 Vagrant.configure("2") do |config|
   config.vm.box = BOX
+  # HCP Vagrant Cloud (Vagrant Cloud) se retira el 31/12/2026. AlmaLinux publica
+  # sus boxes en su propio catalogo; VAGRANT_SERVER_URL tiene prioridad si se define.
+  config.vm.box_server_url = BOX_SERVER_URL
+  config.vm.box_version = BOX_VERSION if BOX_VERSION
   config.vm.box_check_update = false
   config.vm.boot_timeout = 600
 
-  # La box oficial de Rocky tuvo problemas con los Guest Additions / carpetas
-  # compartidas, asi que no las usamos: los archivos se suben con el provisioner "file".
+  # Las carpetas compartidas se mantienen desactivadas para que el laboratorio
+  # funcione igual en VirtualBox y otros providers: los archivos se suben con
+  # el provisioner "file" y el resto se clona desde git dentro de la workstation.
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
   NODES.each do |n|
@@ -115,6 +133,14 @@ Vagrant.configure("2") do |config|
           next unless File.exist?(File.join(File.dirname(__FILE__), f))
           node.vm.provision "upload-#{f}", type: "file",
             source: f, destination: "/tmp/lab-upload-#{f}"
+        end
+
+        # Archivos de html/ (tema oscuro, etc.) van a su propia carpeta para
+        # que provision-workstation.sh los coloque en $LAB_DIR/html/.
+        UPLOADS_HTML.each do |f|
+          next unless File.exist?(File.join(File.dirname(__FILE__), f))
+          node.vm.provision "upload-#{f}", type: "file",
+            source: f, destination: "/tmp/lab-upload-html/#{File.basename(f)}"
         end
 
         node.vm.provision "workstation", type: "shell",

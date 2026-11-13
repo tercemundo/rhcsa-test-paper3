@@ -4,6 +4,13 @@ Simulacro práctico del examen **RHCSA (EX200)** para practicar en tu propio lab
 Un script prepara el escenario en las máquinas, vos resolvés las tareas a mano y otro script
 (`check.sh`) **corrige automáticamente** y te da un porcentaje y un veredicto PASS/FAIL.
 
+El laboratorio automatizado usa **AlmaLinux 10** (`almalinux/10`) en las tres VMs.
+
+> **Rama `v2`:** esta versión migró el laboratorio desde AlmaLinux 9 a AlmaLinux 10 y
+> requirió actualizar el entorno anfitrión, recompilar los módulos kernel de VirtualBox
+> y adaptar el provisionado, los scripts de preparación y la interfaz web. El detalle
+> de la migración y de los cambios está en [Cambios de la versión v2](#cambios-de-la-versión-v2).
+
 > Fork de [`codexchangee/rhcsa-test-paper3`](https://github.com/codexchangee/rhcsa-test-paper3).
 > Este README documenta el repo; los puntos marcados con ⚠️ son cosas que debés confirmar
 > leyendo los scripts correspondientes antes de usarlos.
@@ -23,6 +30,7 @@ Un script prepara el escenario en las máquinas, vos resolvés las tareas a mano
 9. [Problemas frecuentes](#9-problemas-frecuentes)
 10. [Advertencias de seguridad](#10-advertencias-de-seguridad)
 11. [Limitaciones conocidas del corrector](#11-limitaciones-conocidas-del-corrector)
+12. [Cambios de la versión v2](#cambios-de-la-versión-v2)
 
 ---
 
@@ -30,15 +38,16 @@ Un script prepara el escenario en las máquinas, vos resolvés las tareas a mano
 
 | Archivo / carpeta | Se ejecuta en | Para qué sirve |
 |---|---|---|
-| `env.sh` | workstation | Prepara el escenario: descarga `workstation.sh`, `servera.sh` y `serverb.sh` y los ejecuta (el primero local, los otros por SSH). |
+| `env.sh` | workstation | Prepara el escenario con los scripts locales `workstation.sh`, `servera.sh` y `serverb.sh` (estos últimos se ejecutan en los servidores por SSH). |
+| `verificar-escenario.sh` | workstation | Comprueba en modo de solo lectura que el escenario quedó preparado correctamente. |
 | `workstation.sh` | workstation (lo lanza `env.sh`) | Prepara la máquina de control. ⚠️ Verificar contenido. |
 | `servera.sh` | servera (lo lanza `env.sh` por SSH) | Deja servera en el estado inicial del examen. ⚠️ Verificar contenido. |
 | `serverb.sh` | serverb (lo lanza `env.sh` por SSH) | Deja serverb en el estado inicial del examen. ⚠️ Verificar contenido. |
 | `check.sh` | workstation | **Corrector**: se conecta a node1 y node2 por SSH, evalúa 20 tareas y muestra el resultado. |
 | `paper-check.sh` | workstation | ⚠️ Verificar. Por el nombre, probablemente complementa la corrección o el enunciado. |
-| `html/` | tu navegador | ⚠️ Verificar. Probablemente el enunciado del examen en versión web. |
+| `html/` | tu navegador | Enunciado del examen en versión web, con tema claro/oscuro. |
 | `exam-timer.sh` | workstation | **Nuevo**: cuenta regresiva con avisos y autocorrección (ver [sección 8](#8-timer-de-examen)). |
-| `Vagrantfile` | tu PC | **Nuevo**: levanta las 3 VMs de VirtualBox con NAT + host-only (ver [sección 4](#4-instalación-automatizada-con-vagrant-recomendada)). |
+| `Vagrantfile` | tu PC | **Nuevo**: levanta las 3 VMs de AlmaLinux 10 en VirtualBox con NAT + host-only (ver [sección 4](#4-instalación-automatizada-con-vagrant-recomendada)). |
 | `vagrant/provision-common.sh` | las 3 VMs (lo lanza Vagrant) | **Nuevo**: root/SSH, `/etc/hosts`, paquetes base y verificación de red. |
 | `vagrant/provision-workstation.sh` | workstation (lo lanza Vagrant) | **Nuevo**: sshpass, repo, atajos `exam-timer` y `rhcsa-check`, claves SSH. |
 | `.gitattributes` / `.gitignore` | Git | **Nuevo**: finales de línea LF en los `.sh` e ignora `.vagrant/`. |
@@ -69,6 +78,25 @@ Se necesitan **3 máquinas** en la misma red: una de control y dos servidores a 
 > `servera`/`serverb` y `check.sh` usa las IPs `.10` y `.11` como `node1`/`node2`. Confirmala en
 > `servera.sh` y `serverb.sh`.
 
+### Acceso al examen desde el navegador del host
+
+El examen se publica con `httpd` en la workstation:
+
+```
+http://172.25.250.9/
+```
+
+> ⚠️ Si el navegador dice **"no se puede acceder a este sitio"**, es el `firewalld` de la workstation:
+> la zona `public` no traía el servicio `http` permitido y el firewall rechazaba las conexiones
+> (por eso el puerto respondía *No route to host*). Los scripts ya lo abren de forma **permanente**
+> (`firewall-cmd --permanent --add-service=http`), así que un `vagrant up`/`env.sh` futuro no lo rompe.
+> Para revisarlo a mano:
+>
+> ```bash
+> vagrant ssh workstation -c "sudo firewall-cmd --list-services"
+> # debe incluir: http
+> ```
+
 ---
 
 ## 3. Requisitos
@@ -77,8 +105,8 @@ Se necesitan **3 máquinas** en la misma red: una de control y dos servidores a 
 
 | Máquina | SO recomendado | Motivo |
 |---|---|---|
-| workstation | RHEL 9, Rocky Linux 9 o AlmaLinux 9 (también Fedora) | Los scripts usan `dnf`/`yum` para instalar `sshpass`. |
-| servera / serverb | RHEL 9, Rocky Linux 9 o AlmaLinux 9 | Las tareas incluyen `dnf`, SELinux, `firewalld`, `tuned`, `podman`, LVM y `autofs`. |
+| workstation | AlmaLinux 10 (recomendado), RHEL 10 o compatible (también Fedora reciente) | Los scripts usan `dnf` para instalar `sshpass` (EPEL 10). |
+| servera / serverb | AlmaLinux 10 (recomendado), RHEL 10 o compatible | Las tareas incluyen `dnf5`, SELinux, `firewalld`, `tuned`, `podman`, LVM y `autofs`. |
 
 ### Recursos sugeridos por VM
 
@@ -94,7 +122,7 @@ Se necesitan **3 máquinas** en la misma red: una de control y dos servidores a 
 |---|---|---|
 | `sshpass` | `check.sh` entra por SSH con contraseña | Lo instala solo `check.sh`, o a mano: `dnf install -y sshpass` |
 | `openssh-clients` | Cliente SSH | `dnf install -y openssh-clients` |
-| `curl` | `env.sh` descarga los scripts | `dnf install -y curl` |
+| `curl` | Descargas y verificaciones de red | `dnf install -y curl` |
 | `git` | Clonar este repo | `dnf install -y git` |
 
 ### Red e internet
@@ -102,7 +130,7 @@ Se necesitan **3 máquinas** en la misma red: una de control y dos servidores a 
 | Necesidad | Detalle |
 |---|---|
 | Subred | Las tres VMs deben estar en `172.25.250.0/24` (red interna o host-only). |
-| Internet | Hace falta para que `env.sh` descargue los scripts y para la tarea Q15 (descargar la imagen `codesxchange/watcher` con Podman). Agregá un segundo adaptador NAT. |
+| Internet | Hace falta para instalar paquetes, clonar el repositorio y para la tarea Q15 (descargar la imagen `codesxchange/watcher` con Podman). Agregá un segundo adaptador NAT. |
 | Nombres del laboratorio de Red Hat | Q03/Q17 buscan `content.example.com` en `/etc/yum.repos.d` y Q09 busca `classroom.example.com` en `/etc/chrony.conf`. Fuera del aula oficial hay que simularlos (ver paso 5.7). |
 
 ---
@@ -111,7 +139,8 @@ Se necesitan **3 máquinas** en la misma red: una de control y dos servidores a 
 
 Con un solo `vagrant up` se crean **3 VMs de VirtualBox**, cada una con **dos interfaces de red**
 (NAT para internet + host-only para verse entre ellas), con root/SSH configurados, `/etc/hosts`
-completo y la workstation lista con el corrector y el timer. Si preferís hacerlo a mano, saltá a la
+completo y la workstation lista con el corrector y el timer. La box base es la oficial
+`almalinux/10` del catálogo de AlmaLinux. Si preferís hacerlo a mano, saltá a la
 [sección 5](#5-instalación-manual-paso-a-paso).
 
 ### 4.1 Qué se crea
@@ -133,14 +162,51 @@ Tu PC (el host) recibe la IP `172.25.250.1` en la red host-only, así que tambi�
 
 | Requisito | Detalle |
 |---|---|
-| VirtualBox | Instalado y funcionando. |
-| Vagrant | 2.3.4 o superior. Usá una versión que soporte tu versión de VirtualBox. |
+| VirtualBox | **7.2.10 o superior** (obligatorio). La versión validada en este laboratorio fue **7.2.22r175245**. Las versiones anteriores no exponen AVX2/BMI2 al guest y AlmaLinux 10 aborta el arranque con `Fatal glibc error: CPU does not support x86-64-v3` ([VirtualBox#642](https://github.com/VirtualBox/virtualbox/issues/642)). Instalalo desde el catálogo oficial de Oracle: <https://download.virtualbox.org/virtualbox/>. En Debian/Ubuntu/Zorin usá el `.deb` de la serie 7.2 de tu distro (noble para Ubuntu 24.04). |
+| Vagrant | 2.3.4 o superior. Con VirtualBox 7.2 necesitás Vagrant 2.4.x (incorpora el driver `Version_7_2`); la versión validada fue **2.4.9**. |
 | Arquitectura | x86_64 (Intel/AMD). No sirve en Mac con Apple Silicon. |
 | RAM libre | Unos 6 GB para las 3 VMs. |
 | Disco libre | Unos 25–30 GB. |
-| Internet | Para bajar la box (`rockylinux/9`), los paquetes y el repo. |
+| Internet | Para bajar la box (`almalinux/10`), los paquetes y el repo. |
+| Secure Boot | Opcional: si está activo, el módulo `vboxdrv` debe estar firmado. |
 
-### 4.3 Autorizar la red host-only (solo Linux y macOS)
+### 4.3 Actualizar VirtualBox y recompilar sus módulos kernel
+
+Para ejecutar AlmaLinux 10 se reemplazó el VirtualBox 7.0 que entregaba la distribución
+por **VirtualBox 7.2** de Oracle. En el host de desarrollo se validó la versión
+**7.2.22r175245**, instalada desde el paquete `.deb` para Ubuntu Noble:
+
+```bash
+# 1. Retirar el VirtualBox provisto por Zorin/Ubuntu.
+sudo apt purge -y virtualbox virtualbox-qt virtualbox-dkms
+
+# 2. Instalar el paquete oficial de Oracle (ajustá el nombre a la versión descargada).
+sudo apt install -y ./virtualbox-7.2_7.2.22-175245~Ubuntu~noble_amd64.deb
+
+# 3. Instalar los headers del kernel que está en uso.
+sudo apt install -y "linux-headers-$(uname -r)"
+
+# 4. Recompilar y cargar los módulos kernel de VirtualBox.
+sudo /usr/lib/virtualbox/vboxdrv.sh
+sudo modprobe vboxdrv
+```
+
+> En este entorno se recompilaron `vboxdrv`, `vboxnetflt` y `vboxnetadp` contra el kernel
+> `6.17.0-22-generic`. Si cambia el kernel o se actualiza VirtualBox, hay que repetir
+> este paso; de lo contrario `vboxdrv` puede quedar con un `vermagic` incompatible.
+
+Comprobación rápida:
+
+```bash
+VBoxManage --version
+modinfo vboxdrv | grep -E '^(version|vermagic):'
+lsmod | grep '^vbox'
+```
+
+La instalación desde el repositorio de la distribución no alcanza para este laboratorio:
+la versión 7.0 disponible en Zorin no cumple los requisitos de CPU de AlmaLinux 10.
+
+### 4.4 Autorizar la red host-only (solo Linux y macOS)
 
 VirtualBox solo permite redes host-only dentro de `192.168.56.0/21` salvo que autorices otro rango.
 Hacelo una sola vez (en Windows no hace falta):
@@ -152,16 +218,17 @@ echo '* 172.25.250.0/24' | sudo tee -a /etc/vbox/networks.conf
 
 El `Vagrantfile` verifica esto antes de `vagrant up` y, si falta, se detiene con este mismo aviso.
 
-### 4.4 Archivos a copiar al repo
+### 4.5 Archivos a copiar al repo
 
 Copiá estos archivos a la **raíz** de tu clon (junto a `check.sh`, `env.sh`, etc.):
 
 | Archivo | Para qué sirve |
 |---|---|
 | `Vagrantfile` | Define las 3 VMs, sus redes, discos y provisionado. |
-| `vagrant/provision-common.sh` | Se ejecuta en las 3 VMs: hostname, root/SSH, `/etc/hosts`, paquetes base, verificación de red. |
+| `vagrant/provision-common.sh` | Se ejecuta en las 3 VMs: hostname, root/SSH, `/etc/hosts`, SELinux, red IPv4-only, paquetes base, verificación de red. |
 | `vagrant/provision-workstation.sh` | Solo workstation: sshpass, repo, atajos, claves SSH, motd. |
 | `exam-timer.sh` | El timer (se copia a la workstation). |
+| `verificar-escenario.sh` | Verificación de solo lectura del escenario (no corrige el examen). |
 | `.gitattributes` | Fuerza finales de línea LF en los `.sh` (evita errores si clonás en Windows). |
 | `.gitignore` | Ignora la carpeta `.vagrant/`. |
 
@@ -180,7 +247,7 @@ rhcsa-test-paper3/
 └── .gitignore
 ```
 
-### 4.5 Levantar el laboratorio
+### 4.6 Levantar el laboratorio
 
 ```bash
 cd rhcsa-test-paper3
@@ -206,7 +273,7 @@ Después, para empezar el examen:
 
 `exam-timer` y `rhcsa-check` son atajos globales a `exam-timer.sh` y `check.sh` dentro de la workstation.
 
-### 4.6 Qué hace el provisionado
+### 4.7 Qué hace el provisionado
 
 | Etapa | VM | Qué hace |
 |---|---|---|
@@ -216,16 +283,18 @@ Después, para empezar el examen:
 | `workstation` | workstation | Instala EPEL y `sshpass`; clona el repo en `/root/rhcsa-test-paper3` y pisa los archivos con tus versiones locales; crea los atajos `exam-timer` y `rhcsa-check`; genera una clave SSH y la copia a `servera` y `serverb`; muestra una tabla de conectividad. |
 | `env` | workstation | Ejecuta `env.sh`. Solo con `AUTO_ENV=1` o a demanda: `vagrant provision workstation --provision-with env`. |
 
-### 4.7 Variables de entorno
+### 4.8 Variables de entorno
 
 | Variable | Valor por defecto | Efecto |
 |---|---|---|
-| `LAB_BOX` | `rockylinux/9` | Box a usar (por ejemplo `almalinux/9` si la de Rocky falla). |
+| `LAB_BOX` | `almalinux/10` | Box a usar. El proyecto está preparado para AlmaLinux 10. |
+| `LAB_BOX_SERVER_URL` | `https://vagrant.almalinux.org` | Catálogo oficial de boxes de AlmaLinux. |
+| `LAB_BOX_VERSION` | (última) | Fija una versión concreta de la box (por ejemplo `10.2.20261109`). |
 | `LAB_ROOT_PASS` | `radiowits` | Contraseña de root. Debe coincidir con `ROOT_PASS` en `check.sh`. |
 | `AUTO_ENV` | (vacío) | Con `1`, ejecuta `env.sh` al terminar el provisionado. |
 | `SKIP_PREFLIGHT` | (vacío) | Con `1`, omite la verificación de `/etc/vbox/networks.conf`. |
 
-### 4.8 Comandos del día a día
+### 4.9 Comandos del día a día
 
 | Qué querés hacer | Comando |
 |---|---|
@@ -237,16 +306,79 @@ Después, para empezar el examen:
 | Volver a ejecutar el provisionado de la workstation | `vagrant provision workstation` |
 | Borrar todo | `vagrant destroy -f` |
 
-### 4.9 Notas y límites
+### 4.10 Notas y límites
 
 | Tema | Detalle |
 |---|---|
 | Discos extra | Usan la función `config.vm.disk` de Vagrant, que es **experimental** (el `Vagrantfile` activa `VAGRANT_EXPERIMENTAL=disks`). Verificá en serverb con `lsblk`. Si no aparecen, probá `VAGRANT_EXPERIMENTAL=disks vagrant up`. |
-| Box de Rocky | La box oficial tuvo caídas puntuales (404) al salir nuevas versiones menores. Si pasa, usá `LAB_BOX=almalinux/9` u otra box compatible con VirtualBox. |
-| Carpetas compartidas | Están desactivadas a propósito (los Guest Additions de la box de Rocky dieron problemas). Los archivos se suben con el provisioner `file`. |
-| `env.sh` | Descarga y ejecuta scripts del repo **original** (`codexchangee`), no de tu fork. Revisalos antes (ver [5.6](#56-revisar-los-scripts-antes-de-ejecutarlos-importante)). |
+| Catálogo de boxes | AlmaLinux movió sus boxes a `https://vagrant.almalinux.org` porque HCP Vagrant Cloud se retira el 31/12/2026. El `Vagrantfile` ya apunta allí con `config.vm.box_server_url`; podés cambiarlo con `LAB_BOX_SERVER_URL`. |
+| Carpetas compartidas | Están desactivadas a propósito (evitan problemas de Guest Additions y permisos entre providers). Los archivos se suben con el provisioner `file`. |
+| `env.sh` | Usa los scripts locales `workstation.sh`, `servera.sh` y `serverb.sh`; `workstation.sh` los copia y ejecuta por SSH en los servidores. Revisalos antes (ver [5.6](#56-revisar-los-scripts-antes-de-ejecutarlos-importante)). |
 | Hostname de servera | Queda como `servera`. `check.sh` (Q02) espera que lo cambies vos a `node1.example.com` durante el examen. |
 | `content.example.com` / `classroom.example.com` | No se simulan: son tareas del examen (Q03, Q09, Q17). Ver [5.7](#57-opcional-simular-contentexamplecom-y-classroomexamplecom). |
+
+### 4.11 Migrar un laboratorio existente a AlmaLinux 10
+
+El cambio de box no se aplica a VMs ya creadas: hay que destruirlas y volver a levantarlas.
+**Esto borra el contenido de las VMs**; si tenés algo que conservar, hacé antes un snapshot o copiá los archivos.
+
+```bash
+# Desde la raíz del repo
+vagrant destroy -f
+
+# Opcional: borrar la box vieja de AlmaLinux 9 (ya no se usa)
+vagrant box remove almalinux/9 --provider virtualbox 2>/dev/null || true
+
+# Crear las 3 VMs con AlmaLinux 10
+vagrant up
+```
+
+El `Vagrantfile` usa `almalinux/10` y el catálogo `https://vagrant.almalinux.org`. Si tu Vagrant es
+viejo y no encuentra la box, actualizalo o ejecutá:
+
+```bash
+export VAGRANT_SERVER_URL=https://vagrant.almalinux.org
+vagrant up
+```
+
+> Si además tenés un proyecto propio de boxes, regenerá esa box con AlmaLinux 10 y apuntá
+> `LAB_BOX` al nombre de tu box (por ejemplo `mi-lab/almalinux-10`).
+
+### 4.12 Diseño de red del laboratorio (100% IPv4)
+
+| Interfaz | Red | Uso | Ruta por defecto |
+|---|---|---|---|
+| `eth0` (NAT) | `10.0.2.0/24` | Salida a internet, `dnf`, `git clone` | **Sí** (gateway `10.0.2.2`) |
+| `eth1` (host-only) | `172.25.250.0/24` | Comunicación **entre VMs** (servera ↔ serverb ↔ workstation) | **No** |
+
+El aprovisionamiento (`vagrant/provision-common.sh`) deja las VMs así:
+
+- **Internet siempre por el NAT.** Vagrant escribe `GATEWAY=172.25.250.1` en la interfaz host-only
+  (plantilla `network_static.erb` de los guests RedHat), y esa ruta compite con la del NAT y se queda
+  con todo el tráfico de salida: `dnf` y `curl` se quedan sin internet aunque el NAT esté perfecto.
+  El script le saca el gateway a la host-only y le pone `ipv4.never-default=yes`.
+- **IPv6 deshabilitado** (`net.ipv6.conf.*.disable_ipv6=1` + `ipv6.method=disabled` en NetworkManager).
+  El NAT de VirtualBox no tiene IPv6 y los resolvers devolvían registros AAAA inalcanzables.
+- **DNS fijo en `8.8.8.8` y `1.1.1.1`**, configurado en el perfil de NetworkManager del NAT y escrito
+  en `/etc/resolv.conf`.
+- **SELinux deshabilitado** (`setenforce 0`, `SELINUX=disabled` en `/etc/selinux/config` y
+  `selinux=0` en el cmdline de grub). Motivo: Vagrant escribe el perfil de red
+  `eth1.nmconnection` con contexto SELinux `user_tmp_t`; con SELinux en enforcing, NetworkManager no
+  puede renombrar ese archivo, `nmcli` falla y la corrección de red de arriba no se puede aplicar.
+
+> ⚠️ **La pregunta 4 del examen es sobre SELinux** (`semanage port -a -t http_port_t -p tcp 82`).
+> Con SELinux deshabilitado, `semanage` no funciona y esa pregunta no se puede resolver. Si preferís
+> conservar el ejercicio, en `vagrant/provision-common.sh` cambiá `SELINUX=disabled` por
+> `SELINUX=permissive` (el `restorecon` del perfil NM ya está, así que `nmcli` sigue funcionando).
+
+Verificación rápida en cualquier VM:
+
+```bash
+ip -4 route show default      # default via 10.0.2.2 dev eth0
+ip route show 172.25.250.0/24 # red host-only, sin default
+cat /etc/resolv.conf          # nameserver 8.8.8.8 / 1.1.1.1
+ping -c1 8.8.8.8              # OK
+```
 
 ---
 
@@ -324,7 +456,7 @@ sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/ssh
 systemctl restart sshd
 ```
 
-> En RHEL 9 puede haber archivos extra en `/etc/ssh/sshd_config.d/` que pisan estas opciones.
+> En RHEL/AlmaLinux 9 y 10 puede haber archivos extra en `/etc/ssh/sshd_config.d/` que pisan estas opciones.
 > Si el login falla, revisá `grep -r PermitRootLogin /etc/ssh/`.
 
 **En la workstation**, probá la conexión y copiá tu clave (así `env.sh` no te pide la contraseña):
@@ -351,18 +483,15 @@ chmod +x *.sh
 
 ### 5.6 Revisar los scripts antes de ejecutarlos (importante)
 
-`env.sh` **no usa los archivos de tu clon**: descarga `workstation.sh`, `servera.sh` y `serverb.sh`
-desde el repo original `codexchangee/rhcsa-test-paper3` y los ejecuta como root.
+`env.sh` usa los scripts locales del clon y los ejecuta como root. `workstation.sh` copia
+`servera.sh` y `serverb.sh` a los servidores y los lanza por SSH:
 
 ```bash
-cat workstation.sh servera.sh serverb.sh
+cat env.sh workstation.sh servera.sh serverb.sh
 ```
 
-Si querés que use **tu fork**, cambiá las tres URLs al inicio de `env.sh`:
-
-```bash
-sed -i 's#codexchangee/rhcsa-test-paper3#tercemundo/rhcsa-test-paper3#g' env.sh
-```
+Estos scripts modifican el estado inicial de las VMs (paquetes, usuarios, LVM, servicios y
+hostname). Revisalos antes de ejecutarlos.
 
 ### 5.7 (Opcional) Simular `content.example.com` y `classroom.example.com`
 
@@ -395,12 +524,35 @@ las veces que quieras volviendo a ese punto.
 | Paso | Dónde | Comando | Qué pasa |
 |---|---|---|---|
 | 1 | workstation | `sudo ./env.sh` | Prepara workstation, servera y serverb (los dos últimos por SSH). |
+| 1b | workstation | `sudo ./verificar-escenario.sh` | **Opcional**: comprueba (sin modificar nada) que el escenario quedó armado bien. |
 | 2 | workstation | `sudo ./exam-timer.sh start 180` | Inicia el cronómetro de 3 horas. |
 | 3 | workstation | abrir `html/` o el enunciado | Leés las consignas. ⚠️ Confirmar dónde está el enunciado. |
 | 4 | servera / serverb | (a mano) | Resolvés las tareas conectándote por SSH. |
 | 5 | otra terminal | `sudo ./exam-timer.sh live` | Mirás cuánto tiempo te queda. |
 | 6 | workstation | `sudo ./exam-timer.sh finish` | Terminás antes de tiempo: corrige y muestra tu tiempo usado. |
 | 7 | workstation | `sudo ./check.sh` | Alternativa: corregir sin timer. |
+
+### 6.1 Verificar que el escenario quedó armado
+
+`verificar-escenario.sh` es un chequeo **de solo lectura** (no corrige el examen ni toca nada).
+Sirve para confirmar que `env.sh` dejó las VMs en el estado inicial esperado:
+
+```bash
+# En la workstation, como root
+cd /root/rhcsa-test-paper3
+./verificar-escenario.sh
+```
+
+Comprueba, entre otras cosas:
+
+| VM | Qué verifica |
+|---|---|
+| Conectividad | ping y SSH root a `172.25.250.10` y `.11` |
+| **servera** | hostname `machine1.exam.com`, `bzip2` desinstalado, httpd en el puerto **82**, `file1..file3` en `/var/www/html`, usuarios `remoteuser3`/`siya`/`simone`/`pandora` |
+| **serverb** | hostname `machine2.exam.com`, password de root reseteada, VG `myvg` + LV `home`, `/home` montado desde el LV, entrada en `/etc/fstab`, `tuned` activo con perfil `balanced` |
+| **workstation** | repo del lab, `exam-timer` y `rhcsa-check` enlazados, httpd activo, examen publicado (index + 20 preguntas + tema oscuro), export NFS, `sshpass` y llaves SSH, **firewalld con `http` permitido** (acceso desde el host a `http://172.25.250.9`) |
+
+Sale con código 0 si todo está OK y 1 si algo falta.
 
 Ejemplo de la salida de `check.sh`:
 
@@ -532,14 +684,14 @@ Para reiniciar la medición: `rm /root/.rhcsa_start`.
 | `Permission denied (publickey,...)` al hacer SSH | Login de root por contraseña deshabilitado | Ver paso 5.4 y revisar `/etc/ssh/sshd_config.d/`. |
 | `check.sh` marca todo ❌ de un nodo | No hay conexión SSH o la IP no coincide | `ping 172.25.250.10` y `ssh root@172.25.250.10`. |
 | `Run as root` | Ejecutaste sin permisos | Usá `sudo` o entrá como root. |
-| `sshpass: command not found` | Falta el paquete | `dnf install -y sshpass` (puede requerir EPEL en RHEL/Rocky/Alma). |
-| `env.sh`: `Failed to download workstation script` | Sin internet o sin DNS | Revisá el adaptador NAT. |
+| `sshpass: command not found` | Falta el paquete | `dnf install -y epel-release && dnf install -y sshpass` (EPEL 10 en RHEL/AlmaLinux 10). |
+| `env.sh` no encuentra `workstation.sh` | El clon está incompleto o se ejecutó desde otro directorio | Verificá que `workstation.sh` esté junto a `env.sh` y ejecutalo desde la raíz del repo. |
 | Q03/Q17 imposibles de resolver | No existe `content.example.com` | Ver paso 5.7. |
 | Q09 imposible de resolver | No existe `classroom.example.com` | Ver paso 5.7. |
 | Q15 falla al bajar la imagen | Sin internet en servera | Habilitá NAT en servera. |
 | `exam-timer.sh`: `Ya hay un examen en curso` | Quedó un timer activo | `./exam-timer.sh stop`. |
-| `vagrant up` aborta con el aviso de `networks.conf` | VirtualBox no autoriza `172.25.250.0/24` | Ver [4.3](#43-autorizar-la-red-host-only-solo-linux-y-macos). |
-| `The IP address configured for the host-only network is not within the allowed ranges` | Igual que arriba | Ver [4.3](#43-autorizar-la-red-host-only-solo-linux-y-macos). |
+| `vagrant up` aborta con el aviso de `networks.conf` | VirtualBox no autoriza `172.25.250.0/24` | Ver [4.4](#44-autorizar-la-red-host-only-solo-linux-y-macos). |
+| `The IP address configured for the host-only network is not within the allowed ranges` | Igual que arriba | Ver [4.4](#44-autorizar-la-red-host-only-solo-linux-y-macos). |
 | `bad interpreter` / `\r: command not found` en los `.sh` | Finales de línea CRLF (clon en Windows) | Copiá `.gitattributes` y volvé a clonar, o `sed -i 's/\r$//' *.sh`. |
 | La workstation no puede entrar por SSH a servera/serverb | Los servidores no terminaron de arrancar | `vagrant provision workstation` (reintenta copiar las claves). |
 | serverb no muestra los discos extra | Función de discos experimental | `VAGRANT_EXPERIMENTAL=disks vagrant up` y revisá `lsblk`. |
@@ -551,7 +703,7 @@ Para reiniciar la medición: `rm /root/.rhcsa_start`.
 
 | Riesgo | Detalle | Recomendación |
 |---|---|---|
-| Ejecución remota de código | `env.sh` descarga y ejecuta como root scripts desde GitHub (repo original, no el fork). | Leé los scripts primero y apuntá `env.sh` a tu fork si querés controlar su contenido. |
+| Ejecución remota de código | `env.sh` ejecuta scripts locales como root y `workstation.sh` los copia y ejecuta por SSH en los servidores. | Revisá `env.sh`, `workstation.sh`, `servera.sh` y `serverb.sh` antes de ejecutarlos. |
 | Contraseñas en texto plano | `ROOT_PASS="radiowits"` y `sshpass -p` dejan la contraseña visible en el script y en la lista de procesos. | Usalo **solo en VMs de laboratorio**, nunca en equipos reales. |
 | SSH root con contraseña | Se habilita para que funcione el corrector. | No lo expongas a internet; usá red interna. |
 | `StrictHostKeyChecking=no` | Desactiva la verificación de claves de host. | Aceptable en laboratorio aislado. |
@@ -568,6 +720,62 @@ Para reiniciar la medición: `rm /root/.rhcsa_start`.
 | Q19 | Busca un `7` en la tercera columna de `swapon --show`; puede dar falsos positivos o negativos según el tamaño. |
 | Q21 | Acepta cualquier tamaño de `/home` entre 140 y 170 MB. |
 | General | `TOTAL=20` está fijo; si agregás o quitás tareas, ajustalo. |
+
+---
+
+## Cambios de la versión v2
+
+La rama `v2` migra el laboratorio de AlmaLinux 9 a **AlmaLinux 10** y corrige problemas
+detectados al levantar y usar las tres máquinas.
+
+### Entorno y VirtualBox
+
+- Se reemplazó el VirtualBox 7.0 de la distribución por **Oracle VirtualBox 7.2**; la versión
+  validada fue **7.2.22r175245**, porque las versiones anteriores no exponen al guest las
+  instrucciones de CPU necesarias para AlmaLinux 10.
+- Se instalaron los headers del kernel en uso y se recompilaron los módulos kernel de
+  VirtualBox (`vboxdrv`, `vboxnetflt` y `vboxnetadp`) para que coincidieran con el
+  `vermagic` del kernel activo.
+- Se validó el laboratorio con **Vagrant 2.4.9** y la box oficial `almalinux/10`, publicada
+  en `https://vagrant.almalinux.org`.
+- Se documentaron los pasos de actualización y recompilación en
+  [4.3 Actualizar VirtualBox y recompilar sus módulos kernel](#43-actualizar-virtualbox-y-recompilar-sus-módulos-kernel).
+
+### Provisionado y scripts
+
+- `Vagrantfile` usa AlmaLinux 10, permite fijar la URL y la versión de la box, autoriza la
+  red host-only `172.25.250.0/24` y sube a la workstation los scripts y recursos web locales.
+- `vagrant/provision-common.sh` deja la red en modo IPv4-only: NAT como ruta predeterminada,
+  host-only sin gateway, IPv6 deshabilitado y DNS público fijo.
+- Se corrigieron los contextos SELinux de los perfiles de NetworkManager y se desactivó
+  SELinux para que `nmcli` pueda reconfigurar las interfaces en el laboratorio.
+- Se instalaron los paquetes requeridos para LVM y `semanage`, y se agregó EPEL 10 como
+  respaldo para instalar `sshpass`.
+- `servera.sh` y `serverb.sh` se adaptaron a `dnf5`, al hostname del escenario y a la
+  detección de discos disponibles en VirtualBox.
+- `serverb.sh` copia `/home` antes de montar el LV para no ocultar `/home/vagrant` y deja
+  `/etc/fstab` intacto si la preparación del LVM falla.
+- `env.sh` dejó de descargar scripts remotos y usa las versiones locales.
+- `workstation.sh` publica también CSS y JavaScript, habilita HTTP en `firewalld` de forma
+  permanente y mantiene la exportación NFS.
+
+### Corrección, validación e interfaz
+
+- `check.sh` reconoce EPEL 10 y ofrece una instalación de respaldo de `sshpass`.
+- Se agregó `verificar-escenario.sh`, una comprobación de solo lectura del estado inicial de
+  las tres VMs.
+- Se agregó un tema claro/oscuro (`html/theme.css` y `html/theme.js`) y se integró en las
+  páginas del examen.
+- Se habilitó el acceso web al enunciado en `http://172.25.250.9/`.
+
+### Compatibilidad y limitaciones
+
+- La versión actual del proyecto está validada para **VirtualBox 7.2.22r175245**,
+  **Vagrant 2.4.9** y **AlmaLinux 10**.
+- Las VMs existentes de AlmaLinux 9 no se actualizan en sitio: hay que destruirlas y crear
+  nuevamente el laboratorio.
+- Desactivar SELinux permite estabilizar NetworkManager, pero impide usar `semanage`; por eso
+  la pregunta sobre SELinux requiere usar `SELINUX=permissive` o resolverla en otro momento.
 
 ---
 
