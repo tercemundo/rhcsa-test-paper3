@@ -8,7 +8,7 @@ NODE1="172.25.250.10"
 NODE2="172.25.250.11"
 ROOT_PASS="radiowits"
 PASS_THRESHOLD=70
-TOTAL=21
+TOTAL=22
 PASSED=0
 SUMMARY=()
 
@@ -278,6 +278,28 @@ if run_remote $NODE2 "
 else
   check_fail "Q22 Flatpak missing"
   add_summary Q22 Flatpak FAIL
+fi
+
+# Q23 – systemd timer on node1
+if run_remote $NODE1 "
+  [ -x /usr/local/bin/event_logger ] &&
+  grep -q 'ls -l /tmp' /usr/local/bin/event_logger &&
+  grep -q '/root/logs/events.trc' /usr/local/bin/event_logger &&
+  [ -f /etc/systemd/system/event_logger.service ] &&
+  grep -q 'Type=oneshot' /etc/systemd/system/event_logger.service &&
+  grep -q 'ExecStart=/usr/local/bin/event_logger' /etc/systemd/system/event_logger.service &&
+  [ -f /etc/systemd/system/event_logger.timer ] &&
+  grep -q 'OnCalendar=*-*-* *:*:00' /etc/systemd/system/event_logger.timer &&
+  grep -q 'Unit=event_logger.service' /etc/systemd/system/event_logger.timer &&
+  systemctl is-enabled event_logger.timer 2>/dev/null | grep -qx enabled &&
+  systemctl is-active event_logger.timer 2>/dev/null | grep -qx active &&
+  [ -f /root/logs/events.trc ]
+"; then
+  check_ok "Q23 systemd timer configured"
+  add_summary Q23 Timer PASS
+else
+  check_fail "Q23 systemd timer missing"
+  add_summary Q23 Timer FAIL
 fi
 
 echo -e "\n${bold}${blue}Summary${reset}"

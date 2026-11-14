@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Examen Práctico Red Hat</title>
+<script>
+(function () {
+  const DURATION_SECONDS = 90 * 60;
+  const STORAGE_KEY = "examEndTime_90m_v2";
+
+  function startTimer(durationSeconds, display) {
+    let endTime = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+    const now = Date.now();
+
+    if (
+      !endTime ||
+      endTime <= now ||
+      endTime - now > durationSeconds * 1000 + 5000
+    ) {
+      endTime = now + durationSeconds * 1000;
+      localStorage.setItem(STORAGE_KEY, String(endTime));
+    }
+
+    function updateTimer() {
+      const remainingMs = Math.max(0, endTime - Date.now());
+      const remaining = Math.floor(remainingMs / 1000);
+
+      const hours = Math.floor(remaining / 3600);
+      const minutes = Math.floor((remaining % 3600) / 60);
+
+      display.textContent =
+        hours + ":" + (minutes < 10 ? "0" : "") + minutes;
+
+      if (remaining <= 15 * 60) {
+        display.classList.add("red");
+      } else {
+        display.classList.remove("red");
+      }
+
+      if (remaining > 0) {
+        setTimeout(updateTimer, 1000);
+      } else {
+        display.textContent = "0:00";
+      }
+    }
+
+    updateTimer();
+  }
+
+  window.onload = function () {
+    const display = document.querySelector("#countdown");
+    if (display) {
+      startTimer(DURATION_SECONDS, display);
+    }
+  };
+})();
+</script>
+
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #ffffcc;
+      display: flex;
+    }
+    .sidebar {
+      width: 220px;
+      background-color: #ffffcc;
+      border-right: 2px solid #ccc;
+      text-align: center;
+      padding: 20px;
+    }
+    .sidebar img {
+      width: 120px;
+    }
+    .exam-title {
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .timer {
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+    .timer.red {
+      color: red;
+    }
+    .lang-link {
+      margin-top: 20px;
+      display: block;
+      font-size: 12px;
+      color: blue;
+      text-decoration: underline;
+    }
+    .content {
+      flex: 1;
+      padding: 20px;
+    }
+    h3 {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+    .task-list {
+      margin: 10px 0 30px 0;
+      border-top: 1px solid #666;
+      padding-top: 10px;
+    }
+    .task {
+      margin: 5px 0;
+    }
+    .task a {
+      color: blue;
+      text-decoration: underline;
+    }
+    .btn {
+      margin-top: 10px;
+      padding: 6px 10px;
+      border: 1px solid #666;
+      background: #fff;
+      cursor: pointer;
+    }
+  </style>
+  <link rel="stylesheet" href="theme.css" />
+  <script src="theme.js"></script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="exam-title">Examen Práctico<br />Red Hat</div>
+    <div class="timer">Tiempo restante: <span id="countdown">1:30</span></div>
+    <a href="#" class="lang-link">Seleccionar Idioma</a>
+    <p>Tarea 23 de 21</p>
+  </div>
+  <div class="content">
+    <h2>Configurar trabajos recurrentes con systemd timer</h2>
+    <p>En <b>node1</b> (servera, 172.25.250.10):</p>
+    <ol>
+      <li>Crear el script <b>/usr/local/bin/event_logger</b> ejecutable que escriba
+        el listado de <code>/tmp</code> en <code>/root/logs/events.trc</code>
+        (<code>ls -l /tmp &gt; /root/logs/events.trc</code>).</li>
+      <li>Crear el servicio <b>event_logger.service</b> en
+        <code>/etc/systemd/system/</code> de tipo <b>oneshot</b> que ejecute
+        <code>/usr/local/bin/event_logger</code>.</li>
+      <li>Crear el temporizador <b>event_logger.timer</b> en
+        <code>/etc/systemd/system/</code> que se dispare <b>cada 1 minuto</b>
+        y active el servicio <code>event_logger.service</code>.</li>
+      <li>Habilitar e iniciar el temporizador para que se ejecute al arranque y
+        permanezca activo.</li>
+    </ol>
+    <p>El archivo <code>/root/logs/events.trc</code> debe generarse
+    automáticamente cada minuto.</p>
+
+<center><button onclick="history.back()">Atrás</button></center>
+    <hr><center>
+    
+    <button>Enviar comentarios sobre este ítem</button></center>
+  </div>
+</body>
+</html>
