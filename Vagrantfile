@@ -57,10 +57,9 @@ UPLOADS = %w[
 ].freeze
 
 # Archivos web que viven dentro de html/ y no siempre estan en el clon del
-# repo (por ejemplo el tema oscuro, que todavia no esta commiteado).
-UPLOADS_HTML = %w[
-  html/theme.css html/theme.js
-].freeze
+# repo. Se suben TODOS los archivos de html/ para que las preguntas en
+# castellano (local) pisem las que traiga el clone de GitHub (ingles).
+UPLOADS_HTML = Dir["html/*"].freeze
 
 # ---------------------------------------------------------------------------
 # Verificacion previa: VirtualBox 6.1.28+ en Linux/macOS solo permite redes
