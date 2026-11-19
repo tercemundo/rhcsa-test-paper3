@@ -58,9 +58,9 @@ else
   add_summary Q02 Network FAIL
 fi
 
-# Q03 – Repositories
-if run_remote $NODE1 "grep -Rqs content.example.com /etc/yum.repos.d"; then
-  check_ok "Q03 Repositories configured"
+# Q03 – Repositories (AlmaLinux 10)
+if run_remote $NODE1 "grep -Rqs almalinux /etc/yum.repos.d"; then
+  check_ok "Q03 Repositories configured (AlmaLinux 10)"
   add_summary Q03 Repo PASS
 else
   check_fail "Q03 Repositories missing"
@@ -222,9 +222,9 @@ else
 fi
 
 
-# Q17 – Repos
-if run_remote $NODE2 "grep -Rqs content.example.com /etc/yum.repos.d"; then
-  check_ok "Q17 Repositories OK"
+# Q17 – Repos (AlmaLinux 10)
+if run_remote $NODE2 "grep -Rqs almalinux /etc/yum.repos.d"; then
+  check_ok "Q17 Repositories OK (AlmaLinux 10)"
   add_summary Q17 Repo PASS
 else
   check_fail "Q17 Repo missing"

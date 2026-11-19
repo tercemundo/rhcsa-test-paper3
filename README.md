@@ -131,7 +131,7 @@ http://172.25.250.9/
 |---|---|
 | Subred | Las tres VMs deben estar en `172.25.250.0/24` (red interna o host-only). |
 | Internet | Hace falta para instalar paquetes, clonar el repositorio y para la tarea Q15 (descargar la imagen `codesxchange/watcher` con Podman). Agregá un segundo adaptador NAT. |
-| Nombres del laboratorio de Red Hat | Q03/Q17 buscan `content.example.com` en `/etc/yum.repos.d` y Q09 busca `classroom.example.com` en `/etc/chrony.conf`. Fuera del aula oficial hay que simularlos (ver paso 5.7). |
+| Repositorios Q03/Q17 | Apuntan a los espejos de AlmaLinux 10 (`repo.almalinux.org/almalinux/10/…`) en `/etc/yum.repos.d`. Q09 busca `classroom.example.com` en `/etc/chrony.conf` (ver paso 5.7). |
 
 ---
 
@@ -315,7 +315,8 @@ Después, para empezar el examen:
 | Carpetas compartidas | Están desactivadas a propósito (evitan problemas de Guest Additions y permisos entre providers). Los archivos se suben con el provisioner `file`. |
 | `env.sh` | Usa los scripts locales `workstation.sh`, `servera.sh` y `serverb.sh`; `workstation.sh` los copia y ejecuta por SSH en los servidores. Revisalos antes (ver [5.6](#56-revisar-los-scripts-antes-de-ejecutarlos-importante)). |
 | Hostname de servera | Queda como `servera`. `check.sh` (Q02) espera que lo cambies vos a `node1.example.com` durante el examen. |
-| `content.example.com` / `classroom.example.com` | No se simulan: son tareas del examen (Q03, Q09, Q17). Ver [5.7](#57-opcional-simular-contentexamplecom-y-classroomexamplecom). |
+| Repositorios Q03/Q17 | Usan los espejos de AlmaLinux 10 directamente (no `content.example.com`). Ver paso 5.7. |
+| `classroom.example.com` | No se simula: es tarea del examen (Q09). Ver [5.7](#57-opcional-simular-contentexamplecom-y-classroomexamplecom). |
 
 ### 4.11 Migrar un laboratorio existente a AlmaLinux 10
 
@@ -493,23 +494,28 @@ cat env.sh workstation.sh servera.sh serverb.sh
 Estos scripts modifican el estado inicial de las VMs (paquetes, usuarios, LVM, servicios y
 hostname). Revisalos antes de ejecutarlos.
 
-### 5.7 (Opcional) Simular `content.example.com` y `classroom.example.com`
+### 5.7 (Opcional) Configurar repositorios de AlmaLinux 10 y `classroom.example.com`
 
-Estos nombres existen solo en el aula oficial de Red Hat. Para que las tareas Q03, Q09 y Q17 sean
-posibles en tu laboratorio, definí a qué apuntan.
+Los repositorios de las tareas Q03 y Q17 ya apuntan a los espejos oficiales de AlmaLinux 10
+(`repo.almalinux.org/almalinux/10/BaseOS/x86_64/os/` y `…/AppStream/…`), por lo que no es necesario
+simular `content.example.com`. Sólo creá en cada nodo un archivo en `/etc/yum.repos.d/` con las
+baseurl de AlmaLinux 10 (ver el bloque al inicio de este documento).
+
+`classroom.example.com` existe solo en el aula oficial de Red Hat. Para la tarea Q09 (chrony),
+definí a qué apunta en tu laboratorio.
 
 | Nombre | Se usa en | Sugerencia para casa |
 |---|---|---|
-| `content.example.com` | Q03 y Q17 (repositorios dnf) | Apuntalo a un servidor web que sirva un espejo de BaseOS/AppStream (por ejemplo, la propia workstation con `httpd` y el ISO montado). |
+| Repositorio BaseOS/AppStream | Q03 y Q17 (dnf) | Apuntalo a `https://repo.almalinux.org/almalinux/10/…`. |
 | `classroom.example.com` | Q09 (NTP con chrony) | Apuntalo a un servidor NTP (por ejemplo, la workstation con `chronyd` como servidor). |
 
 Ejemplo de entrada en `/etc/hosts` de las tres VMs (ajustá la IP a donde montes el servicio):
 
 ```
-172.25.250.9  content.example.com classroom.example.com
+172.25.250.9  classroom.example.com
 ```
 
-> `check.sh` solo comprueba que el texto `content.example.com` aparezca en `/etc/yum.repos.d` y
+> `check.sh` (Q03/Q17) comprueba que aparezca `almalinux` en `/etc/yum.repos.d`; Q09 comprueba
 > `classroom.example.com` en `/etc/chrony.conf`. No verifica que el repo realmente funcione.
 
 ### 5.8 Tomar un snapshot
@@ -583,7 +589,7 @@ Se aprueba con **70 % o más** (`PASS_THRESHOLD=70`).
 | Q | Tema | Qué verifica `check.sh` |
 |---|---|---|
 | Q02 | Red / hostname | El hostname es exactamente `node1.example.com`. |
-| Q03 | Repositorios | Existe `content.example.com` en `/etc/yum.repos.d`. |
+| Q03 | Repositorios | Existe un repositorio de AlmaLinux 10 en `/etc/yum.repos.d`. |
 | Q04 | httpd + SELinux | `httpd` activo y algo escuchando en el puerto **82**. |
 | Q05 | Usuarios y grupo | Existen el grupo `sysadm` y los usuarios `harry` y `natasha`. |
 | Q06 | Directorio colaborativo | `/shared/sysadm` existe con permisos **2770** (SGID). |
@@ -602,7 +608,7 @@ Se aprueba con **70 % o más** (`PASS_THRESHOLD=70`).
 | Q | Tema | Qué verifica `check.sh` |
 |---|---|---|
 | Q16 | Contraseña de root | Se puede entrar por SSH como root con la contraseña de `ROOT_PASS`. |
-| Q17 | Repositorios | Existe `content.example.com` en `/etc/yum.repos.d`. |
+| Q17 | Repositorios | Existe un repositorio de AlmaLinux 10 en `/etc/yum.repos.d`. |
 | Q18 | tuned | Hay un perfil de `tuned` activo. |
 | Q19 | Swap | `swapon --show` muestra una swap cuyo tercer campo contiene un `7`. |
 | Q20 | LVM | `/mnt/database` está montado. |
@@ -686,7 +692,7 @@ Para reiniciar la medición: `rm /root/.rhcsa_start`.
 | `Run as root` | Ejecutaste sin permisos | Usá `sudo` o entrá como root. |
 | `sshpass: command not found` | Falta el paquete | `dnf install -y epel-release && dnf install -y sshpass` (EPEL 10 en RHEL/AlmaLinux 10). |
 | `env.sh` no encuentra `workstation.sh` | El clon está incompleto o se ejecutó desde otro directorio | Verificá que `workstation.sh` esté junto a `env.sh` y ejecutalo desde la raíz del repo. |
-| Q03/Q17 imposibles de resolver | No existe `content.example.com` | Ver paso 5.7. |
+| Q03/Q17 imposibles de resolver | Falta el archivo de repositorio de AlmaLinux 10 en `/etc/yum.repos.d` | Ver paso 5.7. |
 | Q09 imposible de resolver | No existe `classroom.example.com` | Ver paso 5.7. |
 | Q15 falla al bajar la imagen | Sin internet en servera | Habilitá NAT en servera. |
 | `exam-timer.sh`: `Ya hay un examen en curso` | Quedó un timer activo | `./exam-timer.sh stop`. |
